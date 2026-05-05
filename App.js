@@ -1,77 +1,44 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  Animated,
-  FlatList,
-  Image,
-  ImageSourcePropType,
-  StyleSheet,
+  View,
   Text,
   TextInput,
+  Image,
+  FlatList,
   TouchableOpacity,
-  View
+  StyleSheet,
+  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-type Categoria = {
-  id: string;
-  nome: string;
-  imagem: ImageSourcePropType;
-};
-
-type Produto = { 
-  id: string; 
-  nome: string; 
-  descricao: string; 
-  preco: number; 
-  imagem: ImageSourcePropType; };
-
-
-
-const categorias: Categoria[] = [
-  { id: '1', nome: 'Carne', imagem: require('../assets/carne.jpg') },
-  { id: '2', nome: 'Queijo', imagem: require('../assets/queijo.jpg') },
-  { id: '3', nome: 'Calabresa', imagem: require('../assets/calabresa.jpg') },
-  { id: '4', nome: 'Chocolate', imagem: require('../assets/chocolate.png')},
-  { id: '5', nome: 'Frango', imagem: require('../assets/FrangoCatu.jpg')}
+const categorias = [
+  { id: '1', nome: 'Carne', imagem: require('./assets/carne.jpg') },
+  { id: '2', nome: 'Queijo', imagem: require('./assets/queijo.jpg') },
+  { id: '3', nome: 'Calabresa', imagem: require('./assets/calabresa.jpg') },
 ];
-
 
 const produtos = [
   {
     id: '1',
     nome: 'Esfiha de Carne',
     descricao: 'Deliciosa esfiha de carne moída temperada',
-    preco: 6.25,
-    imagem: require('../assets/carne.jpg'),
+    preco: 6.9,
+    imagem: require('./assets/carne.jpg'),
   },
   {
     id: '2',
     nome: 'Esfiha de Queijo',
     descricao: 'Queijo derretido delicioso',
-    preco: 6.25,
-    imagem: require('../assets/queijo.jpg'),
+    preco: 7.2,
+    imagem: require('./assets/queijo.jpg'),
   },
   {
     id: '3',
     nome: 'Esfiha de Calabresa',
     descricao: 'Calabresa com cebola e queijo',
-    preco: 6.25,
-    imagem: require('../assets/calabresa.jpg'),
+    preco: 7.5,
+    imagem: require('./assets/calabresa.jpg'),
   },
-  {
-    id: '4',
-    nome: 'Esfiha de Chocolate',
-    descricao: 'Esfiha coberta de chocolate com granulado em cima',
-    preco: 7.50,
-    imagem: require('../assets/chocolate.png')
-  },
-  {
-    id: '5',
-    nome: 'Esfiha de Frango com Catupiry',
-    descricao: 'Esfiha de frango recheada com Catupiry',
-    preco: 6.25,
-    imagem: require('../assets/FrangoCatu.jpg')
-  }
 ];
 
 export default function App() {
@@ -89,8 +56,7 @@ export default function App() {
   const [estado, setEstado] = useState('');
 
   // carrinho
-  const [carrinho, setCarrinho] = useState<Produto[]>([]);
-  
+  const [carrinho, setCarrinho] = useState([]);
 
   // pagamento
   const [formaPagamento, setFormaPagamento] = useState('');
@@ -101,8 +67,8 @@ export default function App() {
   const animY = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0)).current;
-  const [imagemAnimada, setImagemAnimada] = useState<ImageSourcePropType | null>(null);
-  
+  const [imagemAnimada, setImagemAnimada] = useState(null);
+
   const animarBotao = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.3, duration: 100, useNativeDriver: true }),
@@ -110,8 +76,8 @@ export default function App() {
     ]).start();
   };
 
-  const animarProduto = (imagem: ImageSourcePropType) => {
-  setImagemAnimada(imagem);
+  const animarProduto = (imagem) => {
+    setImagemAnimada(imagem);
 
     animX.setValue(0);
     animY.setValue(0);
@@ -126,7 +92,7 @@ export default function App() {
     ]).start();
   };
 
-  const buscarCEP = async (cepDigitado: String) => {
+  const buscarCEP = async (cepDigitado) => {
     const cepLimpo = cepDigitado.replace(/\D/g, '');
     if (cepLimpo.length !== 8) return;
 
@@ -143,13 +109,13 @@ export default function App() {
     } catch {}
   };
 
-  const adicionarAoCarrinho = (produto: Produto) => {
-  setCarrinho([...carrinho, produto]);
-  animarBotao();
-  animarProduto(produto.imagem);
-};
+  const adicionarAoCarrinho = (produto) => {
+    setCarrinho([...carrinho, produto]);
+    animarBotao();
+    animarProduto(produto.imagem);
+  };
 
-  const removerItem = (index: number) => {
+  const removerItem = (index) => {
     const novo = [...carrinho];
     novo.splice(index, 1);
     setCarrinho(novo);
@@ -233,7 +199,7 @@ export default function App() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.title}>Hermes Esfihas</Text>
+          <Text style={styles.title}>Esfiha Express</Text>
 
           <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity onPress={() => setTela('perfil')}>
@@ -404,23 +370,6 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
   },
-
-  cartIcon: {
-  marginLeft: 15,
-  position: 'relative',
-},
-
-cartCount: {
-  position: 'absolute',
-  top: -5,
-  right: -10,
-  backgroundColor: 'red',
-  color: '#fff',
-  borderRadius: 10,
-  paddingHorizontal: 5,
-  fontSize: 12,
-  overflow: 'hidden',
-},
 
   card: {
     flexDirection: 'row',
