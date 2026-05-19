@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   ImageSourcePropType,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -109,6 +110,9 @@ export default function App() {
   const opacity = useRef(new Animated.Value(0)).current;
   const [imagemAnimada, setImagemAnimada] = useState<ImageSourcePropType | null>(null);
 
+  // filtrar
+  const [busca, setBusca] = useState('');
+
   // Observa estado de autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -121,6 +125,8 @@ export default function App() {
         setTela('login');
       }
     });
+
+    
     return unsubscribe;
   }, []);
 
@@ -216,6 +222,8 @@ export default function App() {
 
   const total = carrinho.reduce((sum, item) => sum + item.preco, 0);
 
+
+
   // ===== LOGIN =====
   if (tela === 'login') {
     return (
@@ -302,7 +310,7 @@ export default function App() {
   // ===== PEDIDOS ANTERIORES =====
   if (tela === 'pedidos') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: 40 }]}>
         <Text style={styles.sectionTitle}>Meus Pedidos</Text>
         {pedidosAnteriores.length === 0 ? (
           <Text style={{ margin: 15, color: '#999' }}>Nenhum pedido ainda.</Text>
@@ -358,13 +366,16 @@ export default function App() {
     );
   }
 
+  const produtosFiltrados = produtos.filter(p =>
+  p.nome.toLowerCase().includes(busca.toLowerCase())
+);
+
   // ===== HOME =====
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.title}>Hermes Esfihas</Text>
-
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <TouchableOpacity onPress={() => setTela('pedidos')}>
               <Ionicons name="receipt-outline" size={28} color="#fff" />
@@ -380,37 +391,38 @@ export default function App() {
             </Animated.View>
           </View>
         </View>
-
         <Text style={styles.location}>
           {rua ? `${rua}, ${cidade}` : 'Informe seu endereço no perfil'}
         </Text>
-
-        <TextInput style={styles.search} placeholder="Buscar esfihas..." />
+        <TextInput
+          style={styles.search}
+          placeholder="Buscar esfihas..."
+          value={busca}
+          onChangeText={setBusca}
+        />
       </View>
 
-      <View style={styles.promo}>
-        <Text style={styles.promoText}>Promoção do Dia: 20% OFF</Text>
-      </View>
+      <ScrollView>
+        <View style={styles.promo}>
+          <Text style={styles.promoText}>Promoção do Dia: 20% OFF</Text>
+        </View>
 
-      <Text style={styles.sectionTitle}>Mais Pedidas</Text>
+        <Text style={styles.sectionTitle}>Mais Pedidas</Text>
 
-      <FlatList
-        horizontal
-        data={categorias}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.categoryItem}>
-            <Image source={item.imagem} style={styles.categoryImage} />
-            <Text>{item.nome}</Text>
-          </View>
-        )}
-      />
+        <FlatList
+          horizontal
+          data={categorias}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.categoryItem}>
+              <Image source={item.imagem} style={styles.categoryImage} />
+              <Text>{item.nome}</Text>
+            </View>
+          )}
+        />
 
-      <FlatList
-        data={produtos}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
+        {produtosFiltrados.map((item) => (
+          <View style={styles.card} key={item.id}>
             <Image source={item.imagem} style={styles.cardImage} />
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{item.nome}</Text>
@@ -421,23 +433,15 @@ export default function App() {
               <Text style={{ color: '#fff' }}>+</Text>
             </TouchableOpacity>
           </View>
-        )}
-      />
+        ))}
+
+        <View style={{ height: 220 }} />
+      </ScrollView>
 
       {imagemAnimada && (
         <Animated.Image
           source={imagemAnimada}
-          style={[
-            styles.flyingImage,
-            {
-              opacity,
-              transform: [
-                { translateX: animX },
-                { translateY: animY },
-                { scale: scale },
-              ],
-            },
-          ]}
+          style={[styles.flyingImage, { opacity, transform: [{ translateX: animX }, { translateY: animY }, { scale: scale }] }]}
         />
       )}
 
@@ -458,17 +462,13 @@ export default function App() {
 
       <View style={styles.carrinho}>
         <Text>Total: R$ {total.toFixed(2)}</Text>
-        <TouchableOpacity
-          style={styles.botaoFinalizar}
-          onPress={() => setTela('pagamento')}
-        >
+        <TouchableOpacity style={styles.botaoFinalizar} onPress={() => setTela('pagamento')}>
           <Text style={{ color: '#fff' }}>Ir para pagamento</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -592,6 +592,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderTopWidth: 1,
     borderColor: '#ddd',
+    paddingBottom: 40,
   },
   botaoFinalizar: {
     backgroundColor: '#4CAF50',
