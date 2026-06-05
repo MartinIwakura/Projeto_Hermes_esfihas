@@ -1,22 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   BackHandler,
-  FlatList,
   Image,
   ImageSourcePropType,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  KeyboardAvoidingView,
-  Platform
+  View
 } from 'react-native';
 import { auth, db } from '../firebase/firebaseConfig';
 
@@ -32,51 +31,169 @@ type Produto = {
   descricao: string;
   preco: number;
   imagem: ImageSourcePropType;
+  categoria: 'salgada' | 'doce' | 'bebida'; // Tipagem da nova propriedade
 };
-
-const categorias: Categoria[] = [
-  { id: '1', nome: 'Carne', imagem: require('../assets/carne.jpg') },
-  { id: '2', nome: 'Queijo', imagem: require('../assets/queijo.jpg') },
-  { id: '3', nome: 'Calabresa', imagem: require('../assets/calabresa.jpg') },
-  { id: '4', nome: 'Chocolate', imagem: require('../assets/chocolate.png') },
-  { id: '5', nome: 'Frango', imagem: require('../assets/FrangoCatu.jpg') }
-];
 
 const produtos: Produto[] = [
   {
     id: '1',
     nome: 'Esfiha de Carne',
-    descricao: 'Deliciosa esfiha de carne moída temperada',
+    descricao: 'Tradicional carne moída perfeitamente temperada com especiarias da casa',
     preco: 6.25,
     imagem: require('../assets/carne.jpg'),
+    categoria: 'salgada'
   },
   {
     id: '2',
-    nome: 'Esfiha de Queijo',
-    descricao: 'Queijo derretido delicioso',
+    nome: 'Esfiha de Frango',
+    descricao: 'Frango desfiado suculento e levemente temperado',
     preco: 6.25,
-    imagem: require('../assets/queijo.jpg'),
+    imagem: require('../assets/esfiha-frango.jpg'),
+    categoria: 'salgada'
   },
   {
     id: '3',
-    nome: 'Esfiha de Calabresa',
-    descricao: 'Calabresa com cebola e queijo',
+    nome: 'Esfiha de Presunto e Queijo',
+    descricao: 'Clássica combinação de presunto picadinho com muçarela derretida',
     preco: 6.25,
-    imagem: require('../assets/calabresa.jpg'),
+    imagem: require('../assets/presunto.png'),
+    categoria: 'salgada'
   },
   {
     id: '4',
-    nome: 'Esfiha de Chocolate',
-    descricao: 'Esfiha coberta de chocolate com granulado em cima',
-    preco: 7.50,
-    imagem: require('../assets/chocolate.png'),
+    nome: 'Esfiha de Queijo',
+    descricao: 'Muçarela especial derretida com um toque leve de ervas',
+    preco: 6.25,
+    imagem: require('../assets/queijo.jpg'),
+    categoria: 'salgada'
   },
   {
     id: '5',
+    nome: 'Esfiha de Calabresa',
+    descricao: 'Calabresa moída de primeira com cebola e cobertura de muçarela',
+    preco: 6.25,
+    imagem: require('../assets/calabresa.jpg'),
+    categoria: 'salgada'
+  },
+  {
+    id: '6',
     nome: 'Esfiha de Frango com Catupiry',
-    descricao: 'Esfiha de frango recheada com Catupiry',
+    descricao: 'Frango desfiado cremoso com o legítimo Catupiry original',
     preco: 6.25,
     imagem: require('../assets/FrangoCatu.jpg'),
+    categoria: 'salgada'
+  },
+  {
+    id: '7',
+    nome: 'Esfiha de Chocolate',
+    descricao: 'Generosa camada de chocolate ao leite cremoso com granulado crocante',
+    preco: 7.50,
+    imagem: require('../assets/chocolate.png'),
+    categoria: 'doce'
+  },
+  {
+    id: '8',
+    nome: 'Esfiha de Doce de Leite',
+    descricao: 'Doce de leite pastoso premium, cremoso na medida certa',
+    preco: 7.25,
+    imagem: require('../assets/docedeleite.png'),
+    categoria: 'doce'
+  },
+  {
+    id: '9',
+    nome: 'Savory & Sweet',
+    descricao: 'Sofisticada combinação de chocolate meio amargo com frutas vermelhas selecionadas',
+    preco: 7.25,
+    imagem: require('../assets/SeS.png'),
+    categoria: 'doce'
+  },
+  {
+    id: '10',
+    nome: 'Esfiha de Ovomaltine',
+    descricao: 'Creme de chocolate cremoso salpicado com flocos crocantes de Ovomaltine',
+    preco: 7.25,
+    imagem: require('../assets/ovomaltine.png'),
+    categoria: 'doce'
+  },
+  {
+    id: '11',
+    nome: 'Esfiha Quatro Queijos',
+    descricao: 'Blend perfeito de muçarela, provolone, parmesão e um toque de requeijão',
+    preco: 7.25,
+    imagem: require('../assets/quatroqueijos.png'),
+    categoria: 'salgada'
+  },
+  {
+    id: '12',
+    nome: 'H2OH! Limão',
+    descricao: 'Bebida leve levemente gaseificada com suco natural de limão',
+    preco: 7.25,
+    imagem: require('../assets/h20.jpg'),
+    categoria: 'bebida'
+  },
+  {
+    id: '13',
+    nome: 'Coca-Cola Lata',
+    descricao: 'Refrigerante lata 350ml trincando de gelada',
+    preco: 5.50,
+    imagem: require('../assets/coca_lata.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '14',
+    nome: 'Coca-Cola 600ml',
+    descricao: 'Refrigerante 600ml ideal para acompanhar sua refeição',
+    preco: 7.50,
+    imagem: require('../assets/coca_600.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '15',
+    nome: 'Coca-Cola KS (Vidro)',
+    descricao: 'A clássica Coca-Cola Garrafa de Vidro 290ml',
+    preco: 6.00,
+    imagem: require('../assets/coca.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '16',
+    nome: 'Guaraná Antarctica Lata',
+    descricao: 'Refrigerante lata 350ml bem gelado',
+    preco: 5.50,
+    imagem: require('../assets/guarana_lata.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '17',
+    nome: 'Guaraná Antarctica 600ml',
+    descricao: 'Refrigerante guaraná 600ml bem gelado',
+    preco: 7.50,
+    imagem: require('../assets/guarana_600.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '18',
+    nome: 'Suco de Laranja Integral',
+    descricao: 'Suco natural de laranja 400ml feito na hora',
+    preco: 8.50,
+    imagem: require('../assets/suco_laranja.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '19',
+    nome: 'Água Mineral Sem Gás',
+    descricao: 'Garrafa de água mineral 500ml',
+    preco: 4.00,
+    imagem: require('../assets/agua_mineral.png'),
+    categoria: 'bebida'
+  },
+  {
+    id: '20',
+    nome: 'Água Mineral Com Gás',
+    descricao: 'Garrafa de água mineral com gás 500ml',
+    preco: 4.50,
+    imagem: require('../assets/agua_gas.png'),
+    categoria: 'bebida'
   }
 ];
 
@@ -109,6 +226,9 @@ export default function App() {
   // Estado para armazenar o último pedido ativo no Delivery
   const [ultimoPedido, setUltimoPedido] = useState<any | null>(null);
 
+  // Filtro de categorias por botões
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<string>('todas');
+
   // animações
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animX = useRef(new Animated.Value(0)).current;
@@ -127,6 +247,7 @@ export default function App() {
         setUsuario(user);
         setTela('home');
         carregarPedidos(user.uid);
+        carregarPerfil(user.uid); // Busca dados cadastrados no banco
       } else {
         setUsuario(null);
         setTela('login');
@@ -165,6 +286,56 @@ export default function App() {
       }
     } catch (error) {
       console.log("Erro ao carregar pedidos:", error);
+    }
+  };
+
+  const carregarPerfil = async (uid: string) => {
+    try {
+      const docRef = doc(db, 'usuarios', uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const dados = docSnap.data();
+        setNome(dados.nome || '');
+        setEmail(dados.email || '');
+        setCep(dados.cep || '');
+        setRua(dados.rua || '');
+        setBairro(dados.bairro || '');
+        setCidade(dados.cidade || '');
+        setEstado(dados.estado || '');
+      } else {
+        // Limpa caso mude de conta e a nova não possua dados gravados ainda
+        setNome('');
+        setEmail('');
+        setCep('');
+        setRua('');
+        setBairro('');
+        setCidade('');
+        setEstado('');
+      }
+    } catch (error) {
+      console.log("Erro ao carregar perfil:", error);
+    }
+  };
+
+  const salvarPerfilNoFirebase = async () => {
+    if (!usuario) return;
+    try {
+      await setDoc(doc(db, 'usuarios', usuario.uid), {
+        nome,
+        email,
+        cep,
+        rua,
+        bairro,
+        cidade,
+        estado,
+        atualizadoEm: new Date().toISOString()
+      });
+      alert('Perfil atualizado com sucesso!');
+      setTela('home');
+    } catch (error) {
+      alert('Erro ao salvar o perfil.');
+      console.log(error);
     }
   };
 
@@ -255,6 +426,18 @@ export default function App() {
 
   const total = carrinho.reduce((sum, item) => sum + item.preco, 0);
 
+  // Filtra por categoria E por texto simultaneamente
+const produtosFiltrados = produtos.filter(p => {
+  const matchesBusca = p.nome.toLowerCase().includes(busca.toLowerCase());
+  
+  // Se for 'todas', traz tudo que NÃO for bebida. Caso contrário, segue o filtro normal.
+  const matchesCategoria = categoriaSelecionada === 'todas' 
+    ? p.categoria !== 'bebida' 
+    : p.categoria === categoriaSelecionada;
+
+  return matchesBusca && matchesCategoria;
+});
+
   // ===== TELA: LOGIN TRATADA COM LOGO VERDADEIRO =====
   if (tela === 'login') {
     return (
@@ -334,7 +517,7 @@ export default function App() {
             dropdownIconColor="#FFA726"
           >
             <Picker.Item label="Clique para selecionar..." value="" enabled={false} />
-            <Picker.Item label="Dinheiro" value="Dinheiro" />
+            <Picker.Item label="A Vista" value="A Vista" />
             <Picker.Item label="Cartão de Crédito/Débito" value="Cartão" />
             <Picker.Item label="Pix" value="Pix" />
           </Picker>
@@ -349,7 +532,7 @@ export default function App() {
           onPress={async () => {
             if (!formaPagamento) { alert('Por favor, escolha o pagamento'); return; }
             await salvarPedido();
-            alert('Pedido confirmado! Acompanhe o status na aba Delivery.');
+            alert('Pedido confirmed! Acompanhe o status na aba Delivery.');
             setCarrinho([]);
             setFormaPagamento('');
             await carregarPedidos(usuario!.uid);
@@ -365,10 +548,6 @@ export default function App() {
       </View>
     );
   }
-
-  const produtosFiltrados = produtos.filter(p =>
-    p.nome.toLowerCase().includes(busca.toLowerCase())
-  );
 
   // ===== TELA PRINCIPAL =====
   return (
@@ -405,34 +584,58 @@ export default function App() {
               />
             </View>
 
-            <Text style={styles.sectionTitle}>Mais Pedidas</Text>
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={categorias}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.categoryItem}>
-                  <Image source={item.imagem} style={styles.categoryImage} />
-                  <Text style={{ fontSize: 12, marginTop: 4 }}>{item.nome}</Text>
-                </View>
-              )}
-            />
+            
+
+            {/* SEÇÃO DOS BOTÕES DE FILTRO POR CATEGORIA */}
+            <Text style={styles.sectionTitle}>Categorias</Text>
+            <View style={styles.filterContainer}>
+              <TouchableOpacity 
+                style={[styles.filterButton, categoriaSelecionada === 'todas' && styles.filterButtonActive]}
+                onPress={() => setCategoriaSelecionada('todas')}
+              >
+                <Text style={[styles.filterButtonText, categoriaSelecionada === 'todas' && styles.filterButtonTextActive]}>Todas</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterButton, categoriaSelecionada === 'salgada' && styles.filterButtonActive]}
+                onPress={() => setCategoriaSelecionada('salgada')}
+              >
+                <Text style={[styles.filterButtonText, categoriaSelecionada === 'salgada' && styles.filterButtonTextActive]}>Salgadas</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterButton, categoriaSelecionada === 'doce' && styles.filterButtonActive]}
+                onPress={() => setCategoriaSelecionada('doce')}
+              >
+                <Text style={[styles.filterButtonText, categoriaSelecionada === 'doce' && styles.filterButtonTextActive]}>Doces</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.filterButton, categoriaSelecionada === 'bebida' && styles.filterButtonActive]}
+                onPress={() => setCategoriaSelecionada('bebida')}
+              >
+                <Text style={[styles.filterButtonText, categoriaSelecionada === 'bebida' && styles.filterButtonTextActive]}>Bebidas</Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.sectionTitle}>Cardápio</Text>
-            {produtosFiltrados.map((item) => (
-              <View style={styles.card} key={item.id}>
-                <Image source={item.imagem} style={styles.cardImage} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.nome}</Text>
-                  <Text style={styles.cardDesc}>{item.descricao}</Text>
-                  <Text style={styles.cardPrice}>R$ {item.preco.toFixed(2)}</Text>
+            {produtosFiltrados.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#999', marginTop: 25 }}>Nenhuma esfiha encontrada nesta categoria.</Text>
+            ) : (
+              produtosFiltrados.map((item) => (
+                <View style={styles.card} key={item.id}>
+                  <Image source={item.imagem} style={styles.cardImage} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cardTitle}>{item.nome}</Text>
+                    <Text style={styles.cardDesc}>{item.descricao}</Text>
+                    <Text style={styles.cardPrice}>R$ {item.preco.toFixed(2)}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.button} onPress={() => adicionarAoCarrinho(item)}>
+                    <Ionicons name="add" size={20} color="#fff" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.button} onPress={() => adicionarAoCarrinho(item)}>
-                  <Ionicons name="add" size={20} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         )}
 
@@ -605,7 +808,8 @@ export default function App() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.botaoSalvarPerfil} onPress={() => setTela('home')}>
+              {/* Aciona a função que salva no Firebase */}
+              <TouchableOpacity style={styles.botaoSalvarPerfil} onPress={salvarPerfilNoFirebase}>
                 <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
                 <Text style={styles.textoFinalizar}>Salvar Alterações</Text>
               </TouchableOpacity>
@@ -728,6 +932,33 @@ const styles = StyleSheet.create({
     width: 55,
     height: 55,
     borderRadius: 28,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    marginTop: 10,
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  filterButtonActive: {
+    backgroundColor: '#FFA726',
+    borderColor: '#FFA726',
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  filterButtonTextActive: {
+    color: '#fff',
   },
   card: {
     flexDirection: 'row',
