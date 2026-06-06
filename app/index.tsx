@@ -362,19 +362,25 @@ export default function App() {
   };
 
   const salvarPedido = async () => {
-    if (!usuario) return;
-    const enderecoCompleto = rua ? `${rua}, ${bairro}, ${cidade} - ${estado}` : 'Retirada no Balcão';
-    
-    await addDoc(collection(db, 'pedidos'), {
-      uid: usuario.uid,
-      email: usuario.email,
-      itens: carrinho.map(p => ({ nome: p.nome, preco: p.preco })),
-      total,
-      formaPagamento,
-      endereco: enderecoCompleto,
-      criadoEm: new Date().toISOString(),
-    });
-  };
+  if (!usuario) return;
+
+  // Verifica se a rua ou o cep foram preenchidos de verdade (removendo espaços em branco)
+  const temEnderecoDigitado = (typeof rua === 'string' && rua.trim() !== '') || (typeof cep === 'string' && cep.trim() !== '');
+
+  // Se tem endereço, monta a string completa. Se não tem, vira Retirada no Balcão.
+  const enderecoCompleto = temEnderecoDigitado 
+    ? `${rua}, ${bairro}, ${cidade} - ${estado}` 
+    : 'Retirada no Balcão';
+  
+  await addDoc(collection(db, 'pedidos'), {
+    uid: usuario.uid,
+    email: usuario.email,
+    itens: carrinho.map(p => ({ nome: p.nome, preco: p.preco })),
+    total,
+    formaPagamento,
+    endereco: enderecoCompleto,
+    criadoEm: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),  });
+};
 
   const animarBotao = () => {
     Animated.sequence([
@@ -532,7 +538,7 @@ const produtosFiltrados = produtos.filter(p => {
           onPress={async () => {
             if (!formaPagamento) { alert('Por favor, escolha o pagamento'); return; }
             await salvarPedido();
-            alert('Pedido confirmed! Acompanhe o status na aba Delivery.');
+            alert('Pedido confirmado! Acompanhe o status na aba Delivery.');
             setCarrinho([]);
             setFormaPagamento('');
             await carregarPedidos(usuario!.uid);
